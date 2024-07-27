@@ -5,16 +5,10 @@ from infrastructure import RoarCompetitionAgentWrapper, ManualControlViewer
 from typing import List, Type, Optional, Dict, Any
 import carla
 import numpy as np
-import gymnasium as gym
 import asyncio
 
 class RoarCompetitionRule:
-    def __init__(
-        self,
-        waypoints: List[roar_py_interface.RoarPyWaypoint],
-        vehicle: roar_py_carla.RoarPyCarlaActor,
-        world: roar_py_carla.RoarPyCarlaWorld
-    ) -> None:
+    def __init__(self, waypoints, vehicle, world):
         self.waypoints = waypoints
         self.vehicle = vehicle
         self.world = world
@@ -51,8 +45,8 @@ class RoarCompetitionRule:
         previous_furthest_index = self.furthest_waypoints_index
         min_dis = np.inf
         min_index = 0
-        endind_index = previous_furthest_index + check_step if (previous_furthest_index + check_step <= len(self.waypoints)) else len(self.waypoints)
-        for i, waypoint in enumerate(self.waypoints[previous_furthest_index:endind_index]):
+        ending_index = previous_furthest_index + check_step if (previous_furthest_index + check_step <= len(self.waypoints)) else len(self.waypoints)
+        for i, waypoint in enumerate(self.waypoints[previous_furthest_index:ending_index]):
             waypoint_delta = waypoint.location - current_location
             projection = np.dot(waypoint_delta, delta_vector_unit)
             projection = np.clip(projection, 0, delta_vector_norm)
@@ -98,3 +92,9 @@ class RoarCompetitionSolution:
             return 0.0
         next_wp = waypoints[current_index + 1]
         next_next_wp = waypoints[current_index + 2]
+        direction = next_next_wp.location - next_wp.location
+        distance = np.linalg.norm(direction)
+        if distance == 0:
+            return 0.0
+        curvature = 2 * np.cross(next_wp.location - waypoints[current_index].location, direction) / (distance ** 2)
+        return np.linalg.norm(curvature)
